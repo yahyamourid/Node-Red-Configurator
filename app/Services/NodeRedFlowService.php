@@ -5,39 +5,83 @@ namespace App\Services;
 use App\Services\Helpers\NodeRed\HttpBuilder;
 use App\Services\Helpers\NodeRed\MqttBuilder;
 use App\Services\Helpers\NodeRed\Utils;
+use App\Services\Helpers\NodeRed\WSBuilder;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 class NodeRedFlowService
 {
+    protected $sensorService;
+
+    public function __construct(SensorService $sensorService)
+    {
+        $this->sensorService = $sensorService;
+    }
 
     public function generateMqttGroup(array $validated): void
     {
         try {
-            $mqttBuilder = new MqttBuilder();
-            $flowId = $validated['flow_id'];
+            if (!$this->sensorService->isSensorExist($validated['sensor_name'])) {
+                $mqttBuilder = new MqttBuilder();
+                $flowId = $validated['flow_id'];
 
-            $flow = Utils::getFlow($flowId);
-            $flow = $mqttBuilder->buildGroup($validated, $flow, $flowId);
-            Utils::updateFlow($flowId, $flow);
+                $flow = Utils::getFlow($flowId);
+                $builder = $mqttBuilder->buildGroup($validated, $flow, $flowId);
+                $flow = $builder['flow'];
+                $sensor = $builder['sensor'];
+                Utils::updateFlow($flowId, $flow);
+                $this->sensorService->createSensor($sensor);
+            } else {
+                throw new \Exception("Sensor with name {$validated['sensor_name']} already exist");
+            }
         } catch (\Exception $e) {
-            throw new \Exception("Erreur lors de l'ajout du groupe MQTT : " . $e->getMessage(), $e->getCode(), $e);
+            throw new \Exception("Failed to add MQTT group : " . $e->getMessage(), $e->getCode(), $e);
         }
     }
 
     public function generateHttpGroup(array $validated): void
     {
         try {
-            $httpBuilder = new HttpBuilder();
-            $flowId = $validated['flow_id'];
+            if (!$this->sensorService->isSensorExist($validated['sensor_name'])) {
+                $httpBuilder = new HttpBuilder();
+                $flowId = $validated['flow_id'];
 
-            $flow = Utils::getFlow($flowId);
-            $flow = $httpBuilder->buildGroup($validated, $flow, $flowId);
-            Utils::updateFlow($flowId, $flow);
+                $flow = Utils::getFlow($flowId);
+                $builder = $httpBuilder->buildGroup($validated, $flow, $flowId);
+                $flow = $builder['flow'];
+                $sensor = $builder['sensor'];
+                Utils::updateFlow($flowId, $flow);
+                $this->sensorService->createSensor($sensor);
+            } else {
+                throw new \Exception("Sensor with name {$validated['sensor_name']} already exist");
+            }
         } catch (\Exception $e) {
-            throw new \Exception("Erreur lors de l'ajout du groupe MQTT : " . $e->getMessage(), $e->getCode(), $e);
+            throw new \Exception("Failed to add HTTP group : " . $e->getMessage(), $e->getCode(), $e);
         }
     }
+
+    public function generateWSGroup(array $validated): void
+    {
+        try {
+            if (!$this->sensorService->isSensorExist($validated['sensor_name'])) {
+                $wsBuilder = new WSBuilder();
+                $flowId = $validated['flow_id'];
+
+                $flow = Utils::getFlow($flowId);
+                $builder = $wsBuilder->buildGroup($validated, $flow, $flowId);
+                $flow = $builder['flow'];
+                $sensor = $builder['sensor'];
+                Utils::updateFlow($flowId, $flow);
+                $this->sensorService->createSensor($sensor);
+            } else {
+                throw new \Exception("Sensor with name {$validated['sensor_name']} already exist");
+            }
+        } catch (\Exception $e) {
+            throw new \Exception("Failde to add WS group : " . $e->getMessage(), $e->getCode(), $e);
+        }
+    }
+
+
 }
 // public function generateFlow(Request $request)
 //     {

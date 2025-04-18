@@ -3,17 +3,14 @@
 namespace App\Services\Helpers\NodeRed;
 
 
-class MqttBuilder implements GroupBuilder
+class WSBuilder implements GroupBuilder
 {
     public function buildGroup(array $validated, array $flow, string $flowId): array
     {
         $sensorName = $validated['sensor_name'];
-        $brokerUrl = $validated['broker_url'];
-        $brokerPort = $validated['broker_port'];
-        $topic = $validated['topic'];
+        $wsPath = $validated['ws_path'];
 
-        $maxY = Utils::getMaxy($flow);
-
+        $maxY = Utils::getMaxY($flow);
 
         $offsetY = 50;
         $baseX = 100;
@@ -23,18 +20,21 @@ class MqttBuilder implements GroupBuilder
         $commentId = Utils::uid();
         $injectId = Utils::uid();
         $functionId = Utils::uid();
-        $mqttOutId = Utils::uid();
-        $mqttInId = Utils::uid();
-        $wsOutId = Utils::uid();
+        $wsOutId1 = Utils::uid();
+        $wsInId = Utils::uid();
+        $jsonId = Utils::uid();
+        $wsOutId2 = Utils::uid();
         $debugId = Utils::uid();
 
         $configs = $flow['configs'] ?? [];
 
-        $existingBrokerId = Utils::existNode($configs, 'mqtt-broker', 'broker', $brokerUrl);
-        $existingWebSocketId = Utils::existNode($configs, 'websocket-listener', 'path', "/ws/{$sensorName}");
+        $existingWebSocketOutId1 = Utils::existNode($configs, 'websocket-listener', 'path', parse_url($wsPath)['path']);
+        $existingWebSocketOutId2 = Utils::existNode($configs, 'websocket-listener', 'path', "/ws/{$sensorName}");
+        $existingWebSocketInId = Utils::existNode($configs, 'websocket-client', 'path', $wsPath);
 
-        $brokerId = $existingBrokerId ?? Utils::uid();
-        $websocketId = $existingWebSocketId ?? Utils::uid();
+        $websocketOutId1 = $existingWebSocketOutId1 ?? Utils::uid();
+        $websocketOutId2 = $existingWebSocketOutId2 ?? Utils::uid();
+        $websocketInId = $existingWebSocketInId ?? Utils::uid();
 
         $nodes = [
             [
@@ -49,25 +49,27 @@ class MqttBuilder implements GroupBuilder
                     "color" => "#a4a4a4"
                 ],
                 "nodes" => [
+                    $commentId,
                     $injectId,
                     $functionId,
-                    $mqttOutId,
-                    $commentId,
-                    $mqttInId,
-                    $wsOutId,
+                    $wsOutId1,
+                    $wsInId,
+                    $jsonId,
+                    $wsOutId2,
                     $debugId
+
                 ],
                 "x" => $baseX,
                 "y" => $baseY,
-                "w" => 650,
-                "h" => 282
+                "w" => 600,
+                "h" => 300
             ],
             [
                 "id" => $commentId,
                 "type" => "comment",
                 "z" => $flowId,
                 "g" => $groupId,
-                "name" => "Sensor: {$sensorName} - MQTT Communication",
+                "name" => "Sensor: {$sensorName} - WS Communication",
                 "x" => $baseX + 120,
                 "y" => $baseY + 5,
                 "wires" => []
@@ -93,90 +95,103 @@ class MqttBuilder implements GroupBuilder
                 "z" => $flowId,
                 "g" => $groupId,
                 "name" => "gen {$sensorName}",
-                "func" => "function getRandom(min, max) {\n    return Math.random() * (max - min) + min;\n}\n\nconst temperature = getRandom(20, 35).toFixed(2);\nconst humidity = getRandom(50, 90).toFixed(2);\n\nmsg.payload = {\n    temperature: parseFloat(temperature),\n    humidity: parseFloat(humidity),\n    sensor: '{$sensorName}',\n    timestamp: new Date().toISOString()\n};\n\nreturn msg;",
+                "func" => "function getRandom(min, max) {\n    return Math.random() * (max - min) + min;\n}\nconst speed = getRandom(0, 120).toFixed(2);\n\nmsg.payload = {\n    speed: parseFloat(speed),\n    timestamp: new Date().toISOString()\n};\n\nreturn msg;\n",
                 "outputs" => 1,
                 "timeout" => 0,
                 "x" => $baseX + 320,
                 "y" => $baseY + 60,
-                "wires" => [[$mqttOutId]]
+                "wires" => [[$wsOutId1]]
             ],
-
             [
-                "id" => $mqttOutId,
-                "type" => "mqtt out",
+                "id" => $wsOutId1,
+                "type" => "websocket out",
                 "z" => $flowId,
                 "g" => $groupId,
                 "name" => "",
-                "topic" => $topic,
-                "qos" => "",
-                "retain" => "",
-                "broker" => $brokerId,
-                "x" => $baseX + 550,
+                "server" => $websocketOutId1,
+                "x" => $baseX + 570,
                 "y" => $baseY + 60,
-                "wires" => []
+                "wires" => [],
             ],
             [
-                "id" => $mqttInId,
-                "type" => "mqtt in",
+                "id" => $wsInId,
+                "type" => "websocket in",
                 "z" => $flowId,
+                "g" => $groupId,
                 "name" => "",
-                "topic" => $topic,
-                "qos" => "2",
-                "datatype" => "auto-detect",
-                "broker" => $brokerId,
+                "server" => "",
+                "client" => $websocketInId,
                 "x" => $baseX + 100,
                 "y" => $baseY + 130,
-                "wires" => [[$debugId, $wsOutId]],
+                "wires" => [[$jsonId]]
             ],
             [
-                "id" => $wsOutId,
+                "id" => $jsonId,
+                "type" => "json",
+                "z" => $flowId,
+                "g" => $groupId,
+                "name" => "",
+                "property" => "payload",
+                "action" => "",
+                "pretty" => false,
+                "x" => $baseX + 340,
+                "y" => $baseY + 130,
+                "wires" => [
+                    [
+                        $wsOutId2,
+                        $debugId
+                    ]
+                ]
+            ],
+            [
+                "id" => $wsOutId2,
                 "type" => "websocket out",
                 "z" => $flowId,
+                "g" => $groupId,
                 "name" => "",
-                "server" => $websocketId,
-                "x" => $baseX + 350,
-                "y" => $baseY + 120,
+                "server" => $websocketOutId2,
+                "x" => $baseX + 550,
+                "y" => $baseY + 110,
                 "wires" => [],
             ],
             [
                 "id" => $debugId,
                 "type" => "debug",
                 "z" => $flowId,
-                "name" => "debug 1",
+                "name" => "debug {$sensorName} 2",
                 "active" => false,
                 "tosidebar" => true,
                 "console" => false,
                 "tostatus" => false,
-                "x" => $baseX + 330,
-                "y" => $baseY + 170,
+                "x" => $baseX + 550,
+                "y" => $baseY + 160,
                 "wires" => [],
             ]
         ];
-        if (!$existingBrokerId) {
+        if (!$existingWebSocketOutId1) {
             $nodes[] = [
-                "id" => $brokerId,
-                "type" => "mqtt-broker",
-                "name" => "",
-                "broker" => $brokerUrl,
-                "port" => $brokerPort,
-                "clientid" => "",
-                "usetls" => false,
-                "protocolVersion" => 4,
-                "keepalive" => 60,
-                "cleansession" => true,
-                "autoConnect" => true
+                "id" => $websocketOutId1,
+                "type" => "websocket-listener",
+                "path" => parse_url($wsPath)['path'],
+                "wholemsg" => false
             ];
         }
-
-        if (!$existingWebSocketId) {
+        if (!$existingWebSocketOutId2) {
             $nodes[] = [
-                "id" => $websocketId,
+                "id" => $websocketOutId2,
                 "type" => "websocket-listener",
                 "path" => "/ws/{$sensorName}",
                 "wholemsg" => false
             ];
         }
-
+        if (!$existingWebSocketInId) {
+            $nodes[] = [
+                "id" => $websocketInId,
+                "type" => "websocket-client",
+                "path" => $wsPath,
+                "wholemsg" => false
+            ];
+        }
         $flow['nodes'] = array_merge($flow['nodes'], $nodes);
         $sensor = [
             "flow_id" => $flowId,
