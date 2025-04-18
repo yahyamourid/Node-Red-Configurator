@@ -67,7 +67,7 @@ class HttpBuilder implements GroupBuilder
                 "type" => "comment",
                 "z" => $flowId,
                 "g" => $groupId,
-                "name" => "Sensor: {$sensorName}",
+                "name" => "Sensor: {$sensorName} - HTTP Communication",
                 "x" => $baseX + 120,
                 "y" => $baseY + 5,
                 "wires" => []
@@ -222,6 +222,16 @@ class HttpBuilder implements GroupBuilder
             ];
         }
         $flow['nodes'] = array_merge($flow['nodes'], $nodes);
-        return $flow;
+        $sensor = [
+            "flow_id" => $flowId,
+            "group_id" => $flowId,
+            "name" => $sensorName,
+            "protocol" => "http"
+        ];
+
+        return [
+            'flow' => $flow,
+            'sensor' => $sensor
+        ];
     }
 }

@@ -12,6 +12,14 @@ class Utils
         return Str::random(16);
     }
 
+    public static function getFlows()
+    {
+        $response = Http::get("http://localhost:1880/flows");
+        if (!$response->successful()) {
+            throw new \Exception('Failed to fetch flows');
+        }
+        return $response->json();
+    }
     public static function getFlow(string $flowId)
     {
         $response = Http::get("http://localhost:1880/flow/{$flowId}");

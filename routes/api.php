@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\FlowController;
+use App\Http\Controllers\SensorController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NodeRedController;
@@ -21,3 +23,15 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::post('/node-red/mqtt', [NodeRedController::class, 'addMqttSensor']);
 Route::post('/node-red/http', [NodeRedController::class, 'addHttpSensor']);
+Route::post('/node-red/ws', [NodeRedController::class, 'addWsSensor']);
+
+Route::get('/flows', [FlowController::class, 'index']);
+
+Route::prefix('sensors')->group(function () {
+    Route::get('/', [SensorController::class,'index']);
+    Route::get('{id}',[SensorController::class,'show']);
+    Route::post('/',[SensorController::class,'store']);
+    Route::put('{id}',[SensorController::class,'update']);
+    Route::delete('{id}', [SensorController::class,'destroy']);
+    Route::get('/flow/{id}', [SensorController::class,'getByflowId']);
+});
