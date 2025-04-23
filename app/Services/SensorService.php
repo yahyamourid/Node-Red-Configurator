@@ -10,7 +10,7 @@ class SensorService
         
     }
 
-    public function getSensorByIs($id){
+    public function getSensorById($id){
         return Sensor::findOrFail( $id );
     }
 

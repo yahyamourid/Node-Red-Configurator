@@ -90,10 +90,10 @@ class HttpBuilder implements GroupBuilder
             [
                 "id" => $functionId,
                 "type" => "function",
-                "z" => $flowId,
+                "z" => $flowId, 
                 "g" => $groupId,
                 "name" => "gen {$sensorName}",
-                "func"=> "function getRandom(min, max) {\n    return Math.random() * (max - min) + min;\n}\nconst sensorName = \"{$sensorName}\";\nconst temperature = getRandom(25, 30).toFixed(2);\nconst humidity = getRandom(60, 75).toFixed(2);\nmsg.payload = {\n    sensor: sensorName,\n    temperature: parseFloat(temperature),\n    humidity: parseFloat(humidity)\n};\n\nmsg.headers = {\n    \"Content-Type\": \"application/json\"\n};\n\nmsg.method = \"POST\";\nmsg.url = \"http://localhost:1880/sensors/${sensorName}\";\n\nreturn msg;\n",
+                "func"=> "function getRandom(min, max) {\n    return Math.random() * (max - min) + min;\n}\nconst speed = getRandom(0, 120).toFixed(2);\n\nmsg.payload = {\n    speed: parseFloat(speed),\n    timestamp: new Date().toISOString()\n};\n\nmsg.headers = {\n    \"Content-Type\": \"application/json\"\n};\n\nmsg.method = \"POST\";\nmsg.url = \"http://localhost:1880/sensors/${sensorName}\";\n\nreturn msg;\n",
                 "outputs" => 1,
                 "timeout" => 0,
                 "x" => $baseX + 320,
