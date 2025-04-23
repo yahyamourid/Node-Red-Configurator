@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Helpers\NodeRed;
+namespace App\Helpers\NodeRed;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;

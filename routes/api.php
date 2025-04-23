@@ -21,17 +21,19 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('/node-red/mqtt', [NodeRedController::class, 'addMqttSensor']);
-Route::post('/node-red/http', [NodeRedController::class, 'addHttpSensor']);
-Route::post('/node-red/ws', [NodeRedController::class, 'addWsSensor']);
+Route::prefix('node-red')->group(function () {
+    Route::post('/mqtt', [NodeRedController::class, 'addMqttSensor']);
+    Route::post('/http', [NodeRedController::class, 'addHttpSensor']);
+    Route::post('/ws', [NodeRedController::class, 'addWsSensor']);
+});
 
 Route::get('/flows', [FlowController::class, 'index']);
 
 Route::prefix('sensors')->group(function () {
-    Route::get('/', [SensorController::class,'index']);
-    Route::get('{id}',[SensorController::class,'show']);
-    Route::post('/',[SensorController::class,'store']);
-    Route::put('{id}',[SensorController::class,'update']);
-    Route::delete('{id}', [SensorController::class,'destroy']);
-    Route::get('/flow/{id}', [SensorController::class,'getByflowId']);
+    Route::get('/', [SensorController::class, 'index']);
+    Route::get('{id}', [SensorController::class, 'show']);
+    Route::post('/', [SensorController::class, 'store']);
+    Route::put('{id}', [SensorController::class, 'update']);
+    Route::delete('{id}', [SensorController::class, 'destroy']);
+    Route::get('/flow/{id}', [SensorController::class, 'getByflowId']);
 });
