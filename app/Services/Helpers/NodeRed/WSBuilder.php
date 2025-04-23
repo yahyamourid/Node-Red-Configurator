@@ -197,7 +197,7 @@ class WSBuilder implements GroupBuilder
             "flow_id" => $flowId,
             "group_id" => $flowId,
             "name" => $sensorName,
-            "protocol" => "mqtt"
+            "protocol" => "ws"
         ];
 
         return [

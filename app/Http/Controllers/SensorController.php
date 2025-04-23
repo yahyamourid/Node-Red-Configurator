@@ -22,7 +22,7 @@ class SensorController extends Controller
     public function show($id)
     {
         try {
-            $sensor = $this->sensorService->getSensorByIs($id);
+            $sensor = $this->sensorService->getSensorById($id);
             return response()->json($sensor, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Sensor not found'], 404);

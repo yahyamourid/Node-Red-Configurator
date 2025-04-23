@@ -28,7 +28,10 @@ class NodeRedController extends Controller
 
         try {
             $this->flowService->generateMqttGroup($validated);
-            return response()->json(['message' => 'MQTT group added successfully'], 201);
+            return response()->json([
+                'success' => true,
+                'message' => 'MQTT group added successfully'
+            ], 201);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -44,7 +47,10 @@ class NodeRedController extends Controller
 
         try {
             $this->flowService->generateHttpGroup($validated);
-            return response()->json(['message' => 'Http group added successfully']);
+            return response()->json([
+                'success' => true,
+                'message' => 'Http group added successfully'
+            ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -61,7 +67,10 @@ class NodeRedController extends Controller
 
         try {
             $this->flowService->generateWSGroup($validated);
-            return response()->json(['message' => 'WS group added successfully']);
+            return response()->json([
+                'success' => true,
+                'message' => 'WS group added successfully'
+            ]);
 
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
