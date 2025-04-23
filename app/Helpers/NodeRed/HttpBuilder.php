@@ -1,16 +1,15 @@
-<?php
+<?php 
 
-namespace App\Services\Helpers\NodeRed;
+namespace App\Helpers\NodeRed;
 
-
-class WSBuilder implements GroupBuilder
+class HttpBuilder implements GroupBuilder
 {
     public function buildGroup(array $validated, array $flow, string $flowId): array
     {
         $sensorName = $validated['sensor_name'];
-        $wsPath = $validated['ws_path'];
+        $method = $validated['method'];
 
-        $maxY = Utils::getMaxY($flow);
+        $maxY = Utils::getMaxy($flow);
 
         $offsetY = 50;
         $baseX = 100;
@@ -20,21 +19,19 @@ class WSBuilder implements GroupBuilder
         $commentId = Utils::uid();
         $injectId = Utils::uid();
         $functionId = Utils::uid();
-        $wsOutId1 = Utils::uid();
-        $wsInId = Utils::uid();
+        $httpOutId = Utils::uid();
+        $debugId1 = Utils::uid();
+        $httpInId = Utils::uid();
+        $httpRespId = Utils::uid();
         $jsonId = Utils::uid();
-        $wsOutId2 = Utils::uid();
-        $debugId = Utils::uid();
+        $wsOutId = Utils::uid();
+        $debugId2 = Utils::uid();
 
         $configs = $flow['configs'] ?? [];
 
-        $existingWebSocketOutId1 = Utils::existNode($configs, 'websocket-listener', 'path', parse_url($wsPath)['path']);
-        $existingWebSocketOutId2 = Utils::existNode($configs, 'websocket-listener', 'path', "/ws/{$sensorName}");
-        $existingWebSocketInId = Utils::existNode($configs, 'websocket-client', 'path', $wsPath);
+        $existingWebSocketId = Utils::existNode($configs, 'websocket-listener', 'path', "/ws/{$sensorName}");
 
-        $websocketOutId1 = $existingWebSocketOutId1 ?? Utils::uid();
-        $websocketOutId2 = $existingWebSocketOutId2 ?? Utils::uid();
-        $websocketInId = $existingWebSocketInId ?? Utils::uid();
+        $websocketId = $existingWebSocketId ?? Utils::uid();
 
         $nodes = [
             [
@@ -52,12 +49,13 @@ class WSBuilder implements GroupBuilder
                     $commentId,
                     $injectId,
                     $functionId,
-                    $wsOutId1,
-                    $wsInId,
+                    $httpOutId,
+                    $debugId1,
+                    $httpInId,
+                    $httpRespId,
                     $jsonId,
-                    $wsOutId2,
-                    $debugId
-
+                    $wsOutId,
+                    $debugId2,
                 ],
                 "x" => $baseX,
                 "y" => $baseY,
@@ -69,7 +67,7 @@ class WSBuilder implements GroupBuilder
                 "type" => "comment",
                 "z" => $flowId,
                 "g" => $groupId,
-                "name" => "Sensor: {$sensorName} - WS Communication",
+                "name" => "Sensor: {$sensorName} - HTTP Communication",
                 "x" => $baseX + 120,
                 "y" => $baseY + 5,
                 "wires" => []
@@ -81,7 +79,7 @@ class WSBuilder implements GroupBuilder
                 "g" => $groupId,
                 "name" => "",
                 "props" => [],
-                "repeat" => "5",
+                "repeat" => "",
                 "once" => false,
                 "onceDelay" => 0.1,
                 "topic" => "",
@@ -92,38 +90,85 @@ class WSBuilder implements GroupBuilder
             [
                 "id" => $functionId,
                 "type" => "function",
-                "z" => $flowId,
+                "z" => $flowId, 
                 "g" => $groupId,
                 "name" => "gen {$sensorName}",
-                "func" => "function getRandom(min, max) {\n    return Math.random() * (max - min) + min;\n}\nconst speed = getRandom(0, 120).toFixed(2);\n\nmsg.payload = {\n    speed: parseFloat(speed),\n    timestamp: new Date().toISOString()\n};\n\nreturn msg;\n",
+                "func"=> "function getRandom(min, max) {\n    return Math.random() * (max - min) + min;\n}\nconst speed = getRandom(0, 120).toFixed(2);\n\nmsg.payload = {\n    speed: parseFloat(speed),\n    timestamp: new Date().toISOString()\n};\n\nmsg.headers = {\n    \"Content-Type\": \"application/json\"\n};\n\nmsg.method = \"POST\";\nmsg.url = \"http://localhost:1880/sensors/${sensorName}\";\n\nreturn msg;\n",
                 "outputs" => 1,
                 "timeout" => 0,
                 "x" => $baseX + 320,
                 "y" => $baseY + 60,
-                "wires" => [[$wsOutId1]]
+                "wires" => [[$httpOutId]]
             ],
             [
-                "id" => $wsOutId1,
-                "type" => "websocket out",
+                "id" => $httpOutId,
+                "type" => "http request",
                 "z" => $flowId,
                 "g" => $groupId,
-                "name" => "",
-                "server" => $websocketOutId1,
-                "x" => $baseX + 570,
+                "name" => "req {$sensorName}",
+                "method" => "use",
+                "ret" => "txt",
+                "paytoqs" => "ignore",
+                "url" => "",
+                "tls" => "",
+                "persist" => false,
+                "proxy" => "",
+                "insecureHTTPParser" => false,
+                "authType" => "",
+                "senderr" => false,
+                "headers" => [],
+                "x" => $baseX + 550,
+                "y" => $baseY + 60,
+                "wires" => [
+                    [
+                        $debugId1
+                    ]
+                ]
+            ],
+            [
+                "id" => $debugId1,
+                "type" => "debug",
+                "z" => $flowId,
+                "g" => $groupId,
+                "name" => "debug {$sensorName} 1",
+                "active" => false,
+                "tosidebar" => true,
+                "console" => false,
+                "tostatus" => false,
+                "x" => $baseX + 780,
                 "y" => $baseY + 60,
                 "wires" => [],
             ],
             [
-                "id" => $wsInId,
-                "type" => "websocket in",
+                "id" => $httpInId,
+                "type" => "http in",
                 "z" => $flowId,
                 "g" => $groupId,
                 "name" => "",
-                "server" => "",
-                "client" => $websocketInId,
+                "url" => "/sensors/{$sensorName}",
+                "method" => strtolower($method),
+                "upload" => false,
+                "swaggerDoc" => "",
                 "x" => $baseX + 100,
                 "y" => $baseY + 130,
-                "wires" => [[$jsonId]]
+                "wires" => [
+                    [
+                        $jsonId,
+                        $httpRespId
+                    ]
+                ]
+            ],
+            [
+                "id" => $httpRespId,
+                "type" => "http response",
+                "z" => $flowId,
+                "g" => $groupId,
+                "name" => "",
+                "statusCode" => "",
+                "headers" => [],
+                "x" => $baseX + 340,
+                "y" => $baseY + 180,
+                "wires" => []
             ],
             [
                 "id" => $jsonId,
@@ -138,24 +183,24 @@ class WSBuilder implements GroupBuilder
                 "y" => $baseY + 130,
                 "wires" => [
                     [
-                        $wsOutId2,
-                        $debugId
+                        $wsOutId,
+                        $debugId2
                     ]
                 ]
             ],
             [
-                "id" => $wsOutId2,
+                "id" => $wsOutId,
                 "type" => "websocket out",
                 "z" => $flowId,
                 "g" => $groupId,
                 "name" => "",
-                "server" => $websocketOutId2,
-                "x" => $baseX + 550,
+                "server" => $websocketId,
+                "x" => $baseX + 570,
                 "y" => $baseY + 110,
                 "wires" => [],
             ],
             [
-                "id" => $debugId,
+                "id" => $debugId2,
                 "type" => "debug",
                 "z" => $flowId,
                 "name" => "debug {$sensorName} 2",
@@ -168,27 +213,11 @@ class WSBuilder implements GroupBuilder
                 "wires" => [],
             ]
         ];
-        if (!$existingWebSocketOutId1) {
+        if (!$existingWebSocketId) {
             $nodes[] = [
-                "id" => $websocketOutId1,
-                "type" => "websocket-listener",
-                "path" => parse_url($wsPath)['path'],
-                "wholemsg" => false
-            ];
-        }
-        if (!$existingWebSocketOutId2) {
-            $nodes[] = [
-                "id" => $websocketOutId2,
+                "id" => $websocketId,
                 "type" => "websocket-listener",
                 "path" => "/ws/{$sensorName}",
-                "wholemsg" => false
-            ];
-        }
-        if (!$existingWebSocketInId) {
-            $nodes[] = [
-                "id" => $websocketInId,
-                "type" => "websocket-client",
-                "path" => $wsPath,
                 "wholemsg" => false
             ];
         }
@@ -197,7 +226,7 @@ class WSBuilder implements GroupBuilder
             "flow_id" => $flowId,
             "group_id" => $flowId,
             "name" => $sensorName,
-            "protocol" => "ws"
+            "protocol" => "http"
         ];
 
         return [
